@@ -8,6 +8,15 @@ import {
   signInWithPopup,
   onAuthStateChanged,
 } from "firebase/auth";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  getDoc,
+  doc,
+} from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const FirebaseContext = createContext(null);
 
@@ -23,6 +32,8 @@ export const useFirebase = () => useContext(FirebaseContext);
 
 const firebaseApp = initializeApp(firebaseConfig);
 const firebaseAuth = getAuth(firebaseApp);
+const firestore = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 const googleProvider = new GoogleAuthProvider(firebaseApp);
 
@@ -45,6 +56,36 @@ export const FirebaseProvider = (props) => {
     signInWithEmailAndPassword(firebaseAuth, email, password);
   };
   const signinWithGoogle = () => signInWithPopup(firebaseAuth, googleProvider);
+
+  const handleCreateNewListing = async (name, isbn, price, cover) => {
+    const imageRef = ref(storage, `uploads/images/${Date.now()}-${cover.name}`);
+    const uploadResult = await uploadBytes(imageRef, cover);
+    return await addDoc(collection(firestore, "books"), {
+      name,
+      isbn,
+      price,
+      imageURL: uploadResult.ref.fullPath,
+      userID: user.uid,
+      userEmail: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    });
+  };
+
+  const listAllBooks = () => {
+    return getDocs(collection(firestore, "books"));
+  };
+
+  const getImageURL = (path) => {
+    return getDownloadURL(ref(storage, path));
+  };
+
+  const getBookById = async (id) => {
+    const docRef = doc(firestore, "books", id);
+    const result = await getDoc(docRef);
+    return result;
+  };
+
   const isLoggedIn = user ? true : false;
   return (
     <FirebaseContext.Provider
@@ -52,6 +93,10 @@ export const FirebaseProvider = (props) => {
         signupUserWithEmailAndPassword,
         signinUserWithEmailAndPassword,
         signinWithGoogle,
+        handleCreateNewListing,
+        listAllBooks,
+        getImageURL,
+        getBookById,
         isLoggedIn,
       }}
     >
