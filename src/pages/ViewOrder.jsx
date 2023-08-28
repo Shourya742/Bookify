@@ -3,24 +3,26 @@ import { useFirebase } from "../context/Firebase";
 import BookCard from "../components/Card";
 import { CardGroup } from "react-bootstrap";
 
-const HomePage = () => {
+const OrdersPage = () => {
   const firebase = useFirebase();
   const [books, setBooks] = useState([]);
   useEffect(() => {
-    firebase.listAllBooks().then((book) => {
-      setBooks(book.docs);
-    });
-  }, []);
+    if (firebase.isLoggedIn)
+      firebase
+        .fetchMyBooks(firebase.user.uid)
+        .then((books) => setBooks(books.docs));
+  }, [firebase]);
+  console.log(books);
+  if (!firebase.isLoggedIn) return <h1>Please log in</h1>;
   return (
-    <div className="container mt-5">
+    <div className="container">
       <CardGroup>
         {books.map((book) => {
-          console.log(book.id);
           return (
             <BookCard
+              link={`/book/orders/${book.id}}`}
               key={book.id}
               id={book.id}
-              link={`/book/view/${book.id}`}
               {...book.data()}
             />
           );
@@ -30,4 +32,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default OrdersPage;
